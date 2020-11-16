@@ -1,5 +1,6 @@
 module LibParser
     ( parseExpr
+    , spaces
     ) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
