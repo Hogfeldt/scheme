@@ -1,5 +1,5 @@
 module LibLispVal
-    ( LispVal(Atom, List, DottedList, Number, String, Bool, PrimitiveFunc, Func, IOFunc, Port)
+    ( LispVal(Atom, List, DottedList, Number, String, Bool, PrimitiveFunc, Func, IOFunc, Port, Float)
     , unwordsList
     , LispError(NumArgs, TypeMismatch, Parser, BadSpecialForm, NotFunction, UnboundVar, Default)
     , ThrowsError
@@ -20,6 +20,7 @@ import System.IO
 type Env = IORef [(String, IORef LispVal)]
 
 data LispVal = Atom String
+             | Float Double   
              | List [LispVal]
              | DottedList [LispVal] LispVal
              | Number Integer
@@ -37,6 +38,7 @@ unwordsList :: [LispVal] -> String
 unwordsList = unwords . map showVal
 
 showVal :: LispVal -> String
+showVal (Float contents)       = show contents
 showVal (String contents)      = "\"" ++ contents ++ "\""
 showVal (Atom name)            = name
 showVal (Number contents)      = show contents
@@ -75,6 +77,7 @@ showError (NumArgs  excepted found)      = "Expected " ++ show excepted
 showError (TypeMismatch excepted found)  = "Invalid type: expected " ++ excepted
                                         ++ ", found " ++ show found
 showError (Parser parseErr)              = "Parse error at " ++ show parseErr
+showError (Default _)                    = "Unknown error"
 
 trapError action = catchError action (return . show)
 

@@ -6,6 +6,7 @@ module LibParser
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Control.Monad -- for liftM
+import Numeric
 
 import LibLispVal
 
@@ -14,6 +15,12 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
 spaces :: Parser ()
 spaces = skipMany1 space
+
+parseFloat :: Parser LispVal 
+parseFloat = do x <- many1 digit
+                char '.'
+                y <- many1 digit
+                return $ Float (fst . head $ readFloat (x ++ "." ++ y))
 
 parseString :: Parser LispVal 
 parseString = do 
@@ -53,7 +60,7 @@ parseQuoted = do
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
          <|> parseString
-         <|> parseNumber
+         <|> try parseFloat <|> parseNumber
          <|> parseQuoted
          <|> do char '('
                 x <- try parseList <|> parseDottedList  -- try is used here for backtracking

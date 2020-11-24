@@ -36,6 +36,7 @@ unpackBool (Bool b) = return b
 unpackBool notBool  = throwError $ TypeMismatch "boolean" notBool
 
 unpackNum :: LispVal -> ThrowsError Integer
+--unpackNum (Float n) = return n
 unpackNum (Number n) = return n
 unpackNum (String n) = let parsed = reads n in
                            if null parsed
@@ -196,6 +197,7 @@ makeVarArgs = makeFunc . Just . showVal
 
 eval :: Env -> LispVal -> IOThrowsError LispVal
 eval env val@(String _) = return val
+eval env val@(Float _)  = return val
 eval env val@(Number _) = return val
 eval env val@(Bool _)   = return val
 eval env (Atom id)      = getVar env id
