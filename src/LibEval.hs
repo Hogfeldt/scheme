@@ -1,4 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RankNTypes #-}
+
 module LibEval
     ( eval
     , primitiveBindings
@@ -36,7 +38,6 @@ unpackBool (Bool b) = return b
 unpackBool notBool  = throwError $ TypeMismatch "boolean" notBool
 
 unpackNum :: LispVal -> ThrowsError Integer
---unpackNum (Float n) = return n
 unpackNum (Number n) = return n
 unpackNum (String n) = let parsed = reads n in
                            if null parsed
@@ -45,10 +46,33 @@ unpackNum (String n) = let parsed = reads n in
 unpackNum (List [n]) = unpackNum n
 unpackNum notNum     = throwError $ TypeMismatch "number" notNum
 
-numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
-numericBinop op            [] = throwError $ NumArgs 2 [] 
+unpackFloat :: LispVal -> ThrowsError Double
+unpackFloat (Float n)   = return n
+unpackFloat (Number n)  = return $ fromIntegral n
+unpackFloat (List [n])  = unpackFloat n
+unpackFloat notNum      = throwError $ TypeMismatch "number" notNum
+
+--Kunne have brugt where til IntegerFloatOrMixHelper
+data NumericListType = IsInteger | IsDouble | IsMix
+
+integerFloatOrMix :: [LispVal] -> NumericListType
+integerFloatOrMix (Number _:xs)    = integerFloatOrMixHelper IsInteger xs
+integerFloatOrMix (Float _:xs)     = integerFloatOrMixHelper IsDouble xs
+
+integerFloatOrMixHelper :: NumericListType -> [LispVal] -> NumericListType
+integerFloatOrMixHelper IsInteger []         = IsInteger
+integerFloatOrMixHelper IsDouble []          = IsDouble
+integerFloatOrMixHelper IsInteger (Number _:xs)   = integerFloatOrMixHelper IsInteger xs
+integerFloatOrMixHelper IsDouble (Float _:xs)     = integerFloatOrMixHelper IsDouble xs
+integerFloatOrMixHelper _ _                          = IsMix
+
+numericBinop :: (forall a. Num a => a -> a -> a) -> [LispVal] -> ThrowsError LispVal
+numericBinop op            [] = throwError $ NumArgs 2 []
 numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal 
-numericBinop op params        = mapM unpackNum params >>= return . Number . foldl1 op
+numericBinop op params        = case integerFloatOrMix params of
+    IsInteger -> mapM unpackNum params >>= return . Number . foldl1 op
+    IsDouble -> mapM unpackFloat params >>= return . Float . foldl1 op
+    IsMix -> mapM unpackFloat params >>= return . Float . foldl1 op
 
 car :: [LispVal] -> ThrowsError LispVal
 car [List (x : xs)]         = return x
@@ -108,10 +132,10 @@ primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
 primitives = [("+", numericBinop (+)),
               ("-", numericBinop (-)),
               ("*", numericBinop (*)),
-              ("/", numericBinop div),
-              ("mod", numericBinop mod),
-              ("quotient", numericBinop quot),
-              ("remainder", numericBinop rem),
+              --("/", numericBinop div),
+              --("mod", numericBinop mod),
+              --("quotient", numericBinop quot),
+              --("remainder", numericBinop rem),
               ("=", numBoolBinop (==)),
               ("<", numBoolBinop (<)),
               (">", numBoolBinop (>)),
