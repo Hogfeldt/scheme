@@ -10,6 +10,7 @@ module LibLispVal
     , liftThrows
     , showVal
     , runIOThrows
+    , testFun
     ) where
 
 import Data.IORef
@@ -18,6 +19,9 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import System.IO
 
 type Env = IORef [(String, IORef LispVal)]
+
+testFun:: Integer -> Integer
+testFun _ = 420
 
 data LispVal = Atom String
              | Float Double   
