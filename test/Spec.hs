@@ -4,18 +4,33 @@
 module Spec where
 
 import Test.HUnit
+import Test.QuickCheck
+
 import LibLispVal
 
-test1 :: Test
-test1 = TestCase (assertEqual "1 = 1" 69 420)
 
 
-test2 :: Test
-test2 = TestCase (assertEqual "1 = 1" (testFun 2) 1)
+testShowVal :: Test
+testShowVal = TestCase (assertEqual "showVal" "1" (showVal (Number 1)))
+
+
+testUnwordsList :: Test
+testUnwordsList = TestCase (assertEqual "unwordsList" "1 2 3" (unwordsList [Number 1, Number 2, Number 3]))
+
+
+testShowError :: Test
+testShowError = TestCase (
+    assertEqual "showError" "Unknown error" (showError (Default "This string is never used"))
+    )
 
 
 tests :: Test
-tests = TestList [TestLabel "test1" test1, TestLabel "test2" test2]
+tests = TestList [
+    TestLabel "testShowVal" testShowVal,
+    TestLabel "testUnwordsList" testUnwordsList,
+    TestLabel "testShowError" testShowError
+    ]
 
 main :: IO Counts
-main = runTestTT tests
+main = do
+    runTestTT tests

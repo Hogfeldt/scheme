@@ -11,6 +11,7 @@ module LibLispVal
     , showVal
     , runIOThrows
     , testFun
+    , showError
     ) where
 
 import Data.IORef
