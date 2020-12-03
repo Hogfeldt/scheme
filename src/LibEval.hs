@@ -74,6 +74,14 @@ numericBinop op params        = case integerFloatOrMix params of
     IsDouble -> mapM unpackFloat params >>= return . Float . foldl1 op
     IsMix -> mapM unpackFloat params >>= return . Float . foldl1 op
 
+fractionalBinop :: (forall a. Fractional a => a -> a -> a) -> [LispVal] -> ThrowsError LispVal
+fractionalBinop op            [] = throwError $ NumArgs 2 []
+fractionalBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal 
+fractionalBinop op params        = case integerFloatOrMix params of
+    IsInteger -> mapM unpackFloat params >>= return . Float . foldl1 op
+    IsDouble -> mapM unpackFloat params >>= return . Float . foldl1 op
+    IsMix -> mapM unpackFloat params >>= return . Float . foldl1 op
+
 car :: [LispVal] -> ThrowsError LispVal
 car [List (x : xs)]         = return x
 car [DottedList (x : xs) _] = return x
@@ -132,7 +140,7 @@ primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
 primitives = [("+", numericBinop (+)),
               ("-", numericBinop (-)),
               ("*", numericBinop (*)),
-              --("/", numericBinop div),
+              ("/", fractionalBinop (/)),
               --("mod", numericBinop mod),
               --("quotient", numericBinop quot),
               --("remainder", numericBinop rem),
