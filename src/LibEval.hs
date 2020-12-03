@@ -74,6 +74,14 @@ numericBinop op params        = case integerFloatOrMix params of
     IsDouble -> mapM unpackFloat params >>= return . Float . foldl1 op
     IsMix -> mapM unpackFloat params >>= return . Float . foldl1 op
 
+floatingBinop :: (forall a. Floating a => a -> a -> a) -> [LispVal] -> ThrowsError LispVal
+floatingBinop op            [] = throwError $ NumArgs 2 []
+floatingBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal 
+floatingBinop op params        = case integerFloatOrMix params of
+    IsInteger -> mapM unpackFloat params >>= return . Float . foldl1 op
+    IsDouble -> mapM unpackFloat params >>= return . Float . foldl1 op
+    IsMix -> mapM unpackFloat params >>= return . Float . foldl1 op
+
 fractionalBinop :: (forall a. Fractional a => a -> a -> a) -> [LispVal] -> ThrowsError LispVal
 fractionalBinop op            [] = throwError $ NumArgs 2 []
 fractionalBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal 
@@ -149,8 +157,9 @@ primitives = [("+", numericBinop (+)),
               ("*", numericBinop (*)),
               ("/", fractionalBinop (/)),
               ("mod", integralBinop mod),
-              --("quotient", numericBinop quot),
-              --("remainder", numericBinop rem),
+              ("quotient", integralBinop quot),
+              ("remainder", integralBinop rem),
+              ("log", floatingBinop logBase),
               ("=", numBoolBinop (==)),
               ("<", numBoolBinop (<)),
               (">", numBoolBinop (>)),
