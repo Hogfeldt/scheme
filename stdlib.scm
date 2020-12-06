@@ -5,6 +5,8 @@
 
 (define (flip f)        (lambda (x y) (f y x)))
 (define (curry f x)     (lambda (y) (apply f (cons x (list y)))))
+(define curry2 (lambda (f) (lambda (arg1) (lambda (arg2) (f arg1 arg2)))))
+(define curry3 (lambda (f) (lambda (arg1) (lambda (arg2) (lambda (arg3) (f arg1 arg2 arg3))))))
 (define (compose f g)   (lambda (x) (f (apply g x))))
 
 (define zero?           (curry = 0))
@@ -21,7 +23,7 @@
 (define (foldl func accum lst)
   (if (null? lst)
     accum
-    (foldl func (func accum (car lst) (cdr lst)))))
+    (foldl func (func accum (car lst)) (cdr lst))))
 
 (define fold foldl)
 (define reduce foldr)
@@ -63,4 +65,16 @@
 (define (map func lst)      (foldr (lambda (x y) (cons (func x) y)) '() lst))
 (define (filter func lst)   (foldr (lambda (x y) (if (pred x) (cons x y) y)) '() lst))
 
+(define (lookup key dict)
+  (if (null? dict)
+    dict
+    (if (equal? key (car (car dict)))
+      (cdr (car dict))
+      (lookup key (cdr dict)))))
 
+(define (zip a b)
+  (if (or (null? a) (null? b))
+    '()
+    (cons 
+      (list (car a) (car b))
+      (zip (cdr a) (cdr b)))))
