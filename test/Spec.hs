@@ -10,27 +10,40 @@ import LibLispVal
 
 
 
-testShowVal :: Test
-testShowVal = TestCase (assertEqual "showVal" "1" (showVal (Number 1)))
+
+merge :: Ord a => [a] -> [a] -> [a]
+merge (x:xs) (y:ys)
+  | x < y     = x : merge xs ys
+  | otherwise = y : merge xs ys
+merge _      _      = []
 
 
-testUnwordsList :: Test
-testUnwordsList = TestCase (assertEqual "unwordsList" "1 2 3" (unwordsList [Number 1, Number 2, Number 3]))
+prop_numElements :: [Integer] -> [Integer] -> Bool
+prop_numElements xs ys
+  = length xs + length ys == length (merge xs ys)
 
 
-testShowError :: Test
-testShowError = TestCase (
-    assertEqual "showError" "Unknown error" (showError (Default "This string is never used"))
-    )
+prop_showVal_numbers :: LispVal -> Bool
+prop_showVal_numbers (Number x)
+ = showVal (Number x) == show x
 
 
-tests :: Test
-tests = TestList [
-    TestLabel "testShowVal" testShowVal,
-    TestLabel "testUnwordsList" testUnwordsList,
-    TestLabel "testShowError" testShowError
-    ]
+prop_showVal_strings :: LispVal -> Bool
+prop_showVal_strings (String x)
+ = showVal (String x) == show x
 
-main :: IO Counts
+
+
+instance Arbitrary LispVal where
+    arbitrary = do
+        Positive num <- arbitrary
+        return $ Number num
+
+
+main :: IO ()
 main = do
-    runTestTT tests
+    quickCheck prop_showVal_numbers
+    quickCheck prop_showVal_strings
+    putStrLn "Done"
+
+
