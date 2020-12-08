@@ -52,6 +52,13 @@
 (define (length lst)    (fold (lambda (x y) (+ x 1)) 0 lst))
 (define (reverse lst)   (fold (flip cons) '() lst))
 
+(define (append lst1 lst2) (foldr cons lst1 lst2))
+
+(define (nth n lst)
+  (if (zero? n)
+    (car lst)
+    (nth (- n 1) (cdr lst))))
+
 (define (mem-helper pred op)    (lambda 
                                   (acc next)
                                   (if (and (not acc) (pred (op next))))))
