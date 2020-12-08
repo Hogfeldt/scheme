@@ -22,6 +22,23 @@ parseFloat = do x <- many1 digit
                 y <- many1 digit
                 return $ Float (fst . head $ readFloat (x ++ "." ++ y))
 
+parseSciNegFloat :: Parser LispVal 
+parseSciNegFloat = do x <- many1 digit
+                      char '.'
+                      y <- many1 digit
+                      char 'e'
+                      char '-'
+                      z <- many1 digit
+                      return $ Float (fst . head $ readFloat (x ++ "." ++ y ++ "e-" ++ z))
+
+parseSciPosFloat :: Parser LispVal 
+parseSciPosFloat = do x <- many1 digit
+                      char '.'
+                      y <- many1 digit
+                      char 'e'
+                      z <- many1 digit
+                      return $ Float (fst . head $ readFloat (x ++ "." ++ y ++ "e" ++ z))
+
 parseString :: Parser LispVal 
 parseString = do 
     char '"'
@@ -60,7 +77,7 @@ parseQuoted = do
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
          <|> parseString
-         <|> try parseFloat <|> parseNumber
+         <|> try parseSciNegFloat <|> try parseSciPosFloat <|> try parseFloat <|> parseNumber
          <|> parseQuoted
          <|> do char '('
                 x <- try parseList <|> parseDottedList  -- try is used here for backtracking
