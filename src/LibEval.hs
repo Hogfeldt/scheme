@@ -23,7 +23,13 @@ boolBinop unpacker op args = if length args /= 2
                                         right <- unpacker $ args !! 1
                                         return $ Bool $ left `op` right
 
-numBoolBinop  = boolBinop unpackNum
+
+numBoolBinop :: (forall a. (Eq a, Ord a) => a -> a -> Bool) -> [LispVal] -> ThrowsError LispVal
+numBoolBinop func params = case integerFloatOrMix params of
+    IsDouble -> boolBinop unpackFloat func params
+    IsMix -> boolBinop unpackFloat func params
+    IsInteger -> boolBinop unpackNum func params
+
 strBoolBinop  = boolBinop unpackStr
 boolBoolBinop = boolBinop unpackBool
 
