@@ -85,3 +85,14 @@
     (cons 
       (list (car a) (car b))
       (zip (cdr a) (cdr b)))))
+
+(define (! n)
+  (if (not (integer? n))
+    '("Factorial can only be used with integers")
+    (if (= n 0)
+      1
+      (* n (! (- n 1))))))
+
+(define (pi) (/ 355 113))
+(define (root n r) (^ n (/ 1 r)))
+(define (abs n) (if (< n 0) (- 0 n) n))
