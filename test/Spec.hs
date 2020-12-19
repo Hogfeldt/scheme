@@ -1,10 +1,14 @@
-
-
-
 module Spec where
-
-import Test.HUnit
+import Debug.Trace (traceShow)
 import Test.QuickCheck
+    ( elements,
+      listOf,
+      quickCheck,
+      verboseCheck,
+      Arbitrary(arbitrary),
+      Gen,
+      Positive(Positive),
+      PrintableString(getPrintableString) )
 
 import LibLispVal
 
@@ -17,9 +21,9 @@ prop_showVal_numbers (Number x)
  = showVal (Number x) == show x
 
 
-prop_showVal_strings :: LispVal -> Bool
-prop_showVal_strings (String x)
- = showVal (String x) == show x
+prop_showError_notFunction :: LispError -> Bool
+prop_showError_notFunction (NotFunction err message)
+ = showError (NotFunction err message) == err ++ ": \"" ++ message ++ "\""
 
 
 instance Arbitrary LispVal where
@@ -28,10 +32,19 @@ instance Arbitrary LispVal where
         return $ Number num
 
 
+arbitraryPrintableString :: Gen String
+arbitraryPrintableString = getPrintableString <$> arbitrary
+
+instance Arbitrary LispError where
+    arbitrary = do
+        err <- arbitraryPrintableString
+        return $ NotFunction (err ++ "testerror") "function123" 
+
+
 main :: IO ()
 main = do
     quickCheck prop_showVal_numbers
-    --quickCheck prop_showVal_strings
+    quickCheck prop_showError_notFunction
     putStrLn "Done"
 
 
