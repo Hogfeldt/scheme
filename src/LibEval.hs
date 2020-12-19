@@ -16,6 +16,17 @@ import LibLispVal
 import LibEnv
 import LibParser
 
+boolMonop :: (LispVal -> Bool) -> [LispVal] -> ThrowsError LispVal
+boolMonop op args = if length args /= 1
+                                then throwError $ NumArgs 1 args
+                                else do return $ Bool (op (args !! 0))
+
+numBoolMonop :: (LispVal -> Bool) -> [LispVal] -> ThrowsError LispVal
+numBoolMonop op params = case integerFloatOrMix params of
+    IsDouble -> boolMonop op params
+    IsInteger -> boolMonop op params
+    IsMix -> throwError $ NumArgs 1 params
+
 boolBinop :: (LispVal -> ThrowsError a) -> (a -> a -> Bool) -> [LispVal] -> ThrowsError LispVal
 boolBinop unpacker op args = if length args /= 2
                                 then throwError $ NumArgs 2 args
@@ -103,6 +114,18 @@ integralBinop op params        = case integerFloatOrMix params of
     IsInteger -> mapM unpackNum params >>= return . Number . foldl1 op
     _ -> throwError $ TypeMismatch "Integral" $ String "double"
 
+numericMonop :: (forall a. Num a => a -> a) -> [LispVal] -> ThrowsError LispVal
+numericMonop op []                          = throwError $ NumArgs 1 []
+numericMonop op singleVal@[Number val]      = return . Float $ op $ fromIntegral val
+numericMonop op singleVal@[Float val]       = return . Float $ op val
+numericMonop op badParams                   = throwError $ TypeMismatch "Number" $ String "List"
+
+floatingMonop :: (forall a. Floating a => a -> a) -> [LispVal] -> ThrowsError LispVal
+floatingMonop op []                         = throwError $ NumArgs 1 []
+floatingMonop op singleVal@[Number val]     = return . Float $ op $ fromIntegral val
+floatingMonop op singleVal@[Float val]      = return . Float $ op val
+floatingMonop op badParams                  = throwError $ TypeMismatch "Number" $ String "List"
+
 car :: [LispVal] -> ThrowsError LispVal
 car [List (x : xs)]         = return x
 car [DottedList (x : xs) _] = return x
@@ -122,6 +145,15 @@ cons [x, List xs]             = return $ List $ x : xs
 cons [x, DottedList xs xlast] = return $ DottedList (x : xs) xlast
 cons [x1, x2]                 = return $ DottedList [x1] x2
 cons badArgList               = throwError $ NumArgs 2 badArgList
+
+isInt :: LispVal -> Bool
+isInt (Number _) = True
+isInt _ = False
+
+isNumber :: LispVal -> Bool
+isNumber (Float _) = True
+isNumber (Number _) = True
+isNumber _ = False
 
 -- helper to eqv
 listEqv l1 l2 = (length l1 == length l2) && 
@@ -166,6 +198,15 @@ primitives = [("+", numericBinop (+)),
               ("quotient", integralBinop quot),
               ("remainder", integralBinop rem),
               ("log", floatingBinop logBase),
+              ("sqrt", floatingMonop sqrt),
+              ("ln", floatingMonop log),
+              ("^", floatingBinop (**)),
+              ("sin", floatingMonop sin),
+              ("cos", floatingMonop cos),
+              ("tan", floatingMonop tan),
+              ("asin", floatingMonop asin),
+              ("acos", floatingMonop acos),
+              ("atan", floatingMonop atan),
               ("=", numBoolBinop (==)),
               ("<", numBoolBinop (<)),
               (">", numBoolBinop (>)),
@@ -179,6 +220,8 @@ primitives = [("+", numericBinop (+)),
               ("string>?", strBoolBinop (>)),
               ("string<=?", strBoolBinop (<=)),
               ("string>=?", strBoolBinop (>=)),
+              ("number?", numBoolMonop isNumber),
+              ("integer?", numBoolMonop isInt),
               ("car", car),
               ("cdr", cdr),
               ("cons", cons),
