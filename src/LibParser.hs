@@ -16,61 +16,81 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 spaces :: Parser ()
 spaces = skipMany1 space
 
-parseNumber :: Parser LispVal
-parseNumber     = try parseSciNegFloat 
-               <|> try parseSciPosFloat 
-               <|> try parseNegativeFloat 
-               <|> try parseFloat  
-               <|> try parseNegativeInteger 
-               <|> parseInteger
+matchInteger :: Parser [Char]
+matchInteger = many1 digit
+
+matchFloat :: Parser [Char]
+matchFloat = do
+                x <- matchInteger
+                char '.'
+                y <- matchInteger
+                return $ x ++ "." ++ y
+
+matchSciPosFloat :: Parser [Char]
+matchSciPosFloat = 
+            do
+                float <- matchFloat
+                char 'e'
+                z <- matchInteger
+                return $ float ++ "e" ++ z
+
+matchSciNegFloat :: Parser [Char]
+matchSciNegFloat = 
+            do
+                float <- matchFloat
+                char 'e'
+                char '-'
+                z <- matchInteger
+                return $ float ++ "e-" ++ z
 
 parseInteger :: Parser LispVal
-parseInteger = liftM (Number . read) $ many1 digit
+parseInteger = liftM (Number . read) $ matchInteger
 
 parseNegativeInteger :: Parser LispVal
 parseNegativeInteger = 
             do
                 char '-'
-                x <- many1 digit
+                x <- matchInteger
                 return $ Number (read ("-" ++ x))
 
 parseFloat :: Parser LispVal 
 parseFloat = 
-            do 
-                x <- many1 digit
-                char '.'
-                y <- many1 digit
-                return $ Float (fst . head $ readFloat (x ++ "." ++ y))
+            do
+                float <- matchFloat
+                return $ Float (fst . head $ readFloat (float))
 
 parseNegativeFloat :: Parser LispVal
 parseNegativeFloat = 
             do
                 char '-'
-                x <- many1 digit
-                char '.'
-                y <- many1 digit
-                return $ Float (fst . head $ readSigned readFloat ("-" ++ x ++ "." ++ y))
+                float <- matchFloat
+                return $ Float (fst . head $ readSigned readFloat ("-" ++ float))
 
 parseSciNegFloat :: Parser LispVal 
-parseSciNegFloat = 
-            do 
-                x <- many1 digit
-                char '.'
-                y <- many1 digit
-                char 'e'
+parseSciNegFloat =
+            do
+                sciNegFloat <- matchSciNegFloat
+                return $ Float (fst . head $ readFloat (sciNegFloat))
+
+parseNegSciNegFloat :: Parser LispVal
+parseNegSciNegFloat =
+            do
                 char '-'
-                z <- many1 digit
-                return $ Float (fst . head $ readFloat (x ++ "." ++ y ++ "e-" ++ z))
+                sciNegFloat <- matchSciNegFloat
+                return $ Float (fst . head $ readSigned readFloat ("-" ++ sciNegFloat))
 
 parseSciPosFloat :: Parser LispVal 
 parseSciPosFloat = 
-            do 
-                x <- many1 digit
-                char '.'
-                y <- many1 digit
-                char 'e'
-                z <- many1 digit
-                return $ Float (fst . head $ readFloat (x ++ "." ++ y ++ "e" ++ z))
+            do
+                sciPosFloat <- matchSciPosFloat
+                return $ Float (fst . head $ readFloat (sciPosFloat))
+
+parseNegSciPosFloat :: Parser LispVal 
+parseNegSciPosFloat = 
+            do
+                char '-'
+                sciPosFloat <- matchSciPosFloat
+                return $ Float (fst . head $ readSigned readFloat ("-" ++ sciPosFloat))
 
 parseString :: Parser LispVal 
 parseString = 
@@ -105,6 +125,16 @@ parseQuoted = do
     char '\''
     x <- parseExpr
     return $ List [Atom "quote", x]
+
+parseNumber :: Parser LispVal
+parseNumber     = try parseSciNegFloat 
+               <|> try parseSciPosFloat 
+               <|> try parseNegSciPosFloat 
+               <|> try parseNegSciNegFloat 
+               <|> try parseNegativeFloat 
+               <|> try parseFloat  
+               <|> try parseNegativeInteger 
+               <|> parseInteger
 
 parseExpr :: Parser LispVal
 parseExpr = parseNumber 
